@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Tasker</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- CSS: RESOURCES-->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" />
+    <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+
+    <!-- HEADER -->
+    <div id="header">
+
+        <div class="header-search">
+            <div class="header-search-container">
+            <input type="text" id="frm-search" name="frm-search" class="form-search" placeholder="Search for tasks" value="">
+            <button id="frm-search-btn" name="frm-search-btn" class="form-search-btn"><span class="fa fa-search" aria-hidden="true"></span></button>
+            <button id="frm-search-btn-clear" name="frm-search-btn-clear" class="form-search-btn-clear"><span class="fa fa-times" aria-hidden="true"></span></button>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <div class="header-actions-checkbox">
+                <input id="checkboxHeader" type="checkbox" class="checkboxHeader" onclick="toggleCheckBoxes(this)">
+            </div>
+            <div id="header-actions-pagination" class="header-actions-pagination"></div>
+        </div>
+
+    </div>
+    <!-- HEADER -->
+
+
+    <!-- CONTENT -->
+    <div id="task-list"></div>
+    <!-- CONTENT -->
+
+
+
+<!-- JAVASCRIPT: RESOURCES-->
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.slim.min.js" ></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+<script type="text/javascript" src="js/pagination.class.js"></script>
+
+
+
+
+<!-- JAVASCRIPT: CUSTOM-->
+<script type="text/javascript">
+    //default settings
+    let data=[
+        {
+            "id":1,
+            "title":"Testing the search feature"
+        },
+        {
+            "id":2,
+            "title":"Click on the pagination button to ensure it works"
+        },
+        {
+            "id":3,
+            "title":"Select individual task and check if the selected option is remembered"
+        },
+        {
+            "id":4,
+            "title":"Select the select all input in the heading to ensure that all tasks are selected"
+        },
+        {
+            "id":5,
+            "title":"Clear the search field"
+        },
+        {
+            "id":6,
+            "title":"Does the search form show the clear button when an active search is enabled"
+        },
+        {
+            "id":7,
+            "title":"Does the app paginate"
+        },
+        {
+            "id":8,
+            "title":"Search is a wildcard search"
+        },
+        {
+            "id":9,
+            "title":"This is was only the first few items"
+        },
+        {
+            "id":10,
+            "title":"Coffee is everyone's morning wakeup call"
+        },
+        {
+            "id":11,
+            "title":"Task item eleven"
+        },
+        {
+            "id":12,
+            "title":"Task item twelve"
+        },
+        {
+            "id":13,
+            "title":"Task item thirteen"
+        },
+        {
+            "id":14,
+            "title":"Task item fourteen"
+        },
+        {
+            "id":15,
+            "title":"Task item fifteen",
+        },
+        {
+            "id":16,
+            "title":"Task item sixteen",
+        },
+        {
+            "id":17,
+            "title":"Some more tasks to follow",
+        },
+        {
+            "id":18,
+            "title":"Github has been link to this codebase",
+        },
+        {
+            "id":19,
+            "title":"The repo is publicy available",
+        },
+        {
+            "id":20,
+            "title":"And this is number twenty",
+        },
+        {
+            "id":21,
+            "title":"Tasks have been capped at 15 per page",
+        },
+        {
+            "id":22,
+            "title":"An now we are a number 22"
+        },
+        {
+            "id":23,
+            "title":"The are only a few more to go"
+        },
+        {
+            "id":24,
+            "title":"Javascript ES6 was used to build this"
+        },
+        {
+            "id":25,
+            "title":"Higher oder array functions were also used"
+        },
+        {
+            "id":26,
+            "title":"Bable was the templating engine used to render out the ui"
+        },
+        {
+            "id":27,
+            "title":"The CSS was all custom developed"
+        },
+        {
+            "id":28,
+            "title":"And this is the final one, lucky number 28"
+        }];
+
+    let dataGroups=[];
+    let searchResultsActive=false;
+
+    let paginationPageLimit=15;
+    let paginationPage;
+    let paginationCurrentPage;
+    let totalTasks;
+    let paginationMaxPages;
+
+    $(document).ready(function(){
+
+        //initialize the ui and get data from mock json object
+        initializeTasks();
+
+        $("#frm-search-btn").click(function(){searchTasksData();});
+        $("#frm-search-btn-clear").click(function(){
+            searchTasksDataClear();
+
+        });
+        $("#frm-search").keyup(function(e) {
+            if(e.keyCode === 13){
+                searchTasksData();
+            }else{
+                if(($(this).val()==="")&&(searchResultsActive)){
+                    searchTasksDataClear();
+                }
+            }
+        });
+
+    });
+
+    /** Data Functions */
+    const initializeTasks = ()=>{
+
+        //Pagination
+        const limit = initializePagination();
+
+        //Append append addition field to data
+        dataGroups = buildTaskGroups(limit);
+
+        //Append data to ui
+        setTasksUI(dataGroups[paginationCurrentPage],500);
+
+    }
+    const searchTasksData = ()=>{
+
+        const searchString = $("#frm-search").val();
+        if(searchString !== ""){
+            const templateTasksListingsPreloader = Handlebars.compile(document.getElementById("template-tasks-listings-preloader").innerHTML);
+            const templateTasksListingsPreloaderHTML = templateTasksListingsPreloader();
+            $("#task-list").html(templateTasksListingsPreloaderHTML);
+
+            const searchResult = data.filter(task => task.titleSearchable.includes(searchString.toLowerCase())); // grabs all objects partial match
+            const searchResultLimited = searchResult.slice(0,paginationPageLimit-1);
+            setTasksUI(searchResultLimited, 300);
+            searchResultsActive = true;
+            $("#frm-search-btn").hide();
+            $("#frm-search-btn-clear").show();
+            $("#header-actions-pagination").hide();
+
+        }else{
+            alert('Please type something to search')
+        }
+
+    }
+    const searchTasksDataClear = ()=>{
+
+        $("#frm-search").val('')
+        setTasksUI(dataGroups[paginationCurrentPage],300);
+        searchResultsActive=false;
+        $("#frm-search-btn").show();
+        $("#frm-search-btn-clear").hide();
+        $("#header-actions-pagination").show();
+
+    }
+    const updateTaskSelected = (taskId,isSelected=true)=>{
+        data.forEach((item) => {
+            if(item.id === taskId){
+                item.selected = isSelected;
+                return true;
+            }
+        });
+        dataGroups[paginationCurrentPage].forEach((item) => {
+            if(item.id === taskId){
+                item.selected = isSelected;
+                return true;
+            }
+        });
+    }
+    const buildTaskGroups = (limit)=>{
+        let taskCounter = 1;
+        let groupCount = 1;
+        let groupArray = [];
+        let taskGroups=[];
+
+        data.forEach((item) => {
+            const titleSearchable = item.title
+            item.selected = false;
+            item.titleSearchable    = titleSearchable.toLowerCase();
+
+            groupArray.push(item);
+            taskGroups[groupCount] = groupArray;
+
+            if(taskCounter === limit){
+                taskCounter = 1;
+                groupCount++;
+                groupArray = [];
+            }else{
+                taskCounter++;
+            }
+        });
+
+        return taskGroups;
+    }
+    const initializePagination = ()=>{
+        paginationPage        = getPageNumber();
+        paginationCurrentPage = paginationPage ? parseInt(paginationPage) : 1;
+        totalTasks            = data.length;
+        paginationMaxPages    = Math.ceil(totalTasks / paginationPageLimit);
+        const pagination            = new Pagination(paginationPageLimit,totalTasks,paginationCurrentPage,paginationMaxPages);
+        const paginationHTML        = pagination.render();
+        $('#header-actions-pagination').html(paginationHTML);
+
+        return paginationPageLimit;
+    }
+
+    /** UI Controls */
+    const setTasksUI = (taskData, loadingTime=1000)=>{
+        //set preloader for listings
+        const templateTasksListingsPreloader = Handlebars.compile(document.getElementById("template-tasks-listings-preloader").innerHTML);
+        const templateTasksListingsPreloaderHTML = templateTasksListingsPreloader();
+        $("#task-list").html(templateTasksListingsPreloaderHTML);
+
+        //get data and illustrate loading time
+        setTimeout(() => {
+            //setting the ui for the tasks
+            const templateTasks = Handlebars.compile(document.getElementById("template-tasks-listings").innerHTML);
+            const templateTasksHTML = templateTasks(taskData);
+            $("#task-list").html(templateTasksHTML);
+
+        }, loadingTime);
+    }
+    const toggleCheckBoxes = (source)=>{
+
+        //Update data selected
+        dataGroups[paginationCurrentPage].forEach((item) => {
+            item.selected = source.checked;
+        });
+
+
+        //Update ui checkboxes
+        checkboxes = $('.checkbox');
+        for(let i in checkboxes)
+        {   checkboxes[i].checked = source.checked;
+            if(!source.checked){
+                $(checkboxes).parent().removeClass("selectedTask");
+            }else{
+                $(checkboxes).parent().addClass("selectedTask");
+            }
+        }
+    }
+    const selectTask = (selectedCheckBox,taskID) =>{
+
+        //Task unselected
+        if(!selectedCheckBox.checked){
+            updateTaskSelected(taskID,false)
+            $(`task-${taskID}`).removeClass("selectedTask");
+
+            let countCheckBoxSelected = 0;
+            checkboxes = $('.checkbox');
+            for(let i in checkboxes)
+            {
+                if(checkboxes[i].checked){
+                    countCheckBoxSelected++;
+                }
+            }
+            if(countCheckBoxSelected===0){
+                document.getElementById("checkboxHeader").checked = false
+            }
+
+        //Task selected
+        }else{
+            updateTaskSelected(taskID,true)
+            $(`task-${taskID}`).addClass("selectedTask");
+            document.getElementById("checkboxHeader").checked = true;
+        }
+    }
+
+    /** Pagination Helpers */
+    const getPageNumber = ()=>{
+        const query = window.location.search;
+        const urlParams = new URLSearchParams(query);
+        return urlParams.get('page');
+    }
+    const gotoNextPage = ()=>{
+        paginationCurrentPage++;
+        setTasksUI(dataGroups[paginationCurrentPage],300);
+        const pagination            = new Pagination(paginationPageLimit,totalTasks,paginationCurrentPage,paginationMaxPages);
+        const paginationHTML        = pagination.render();
+        $('#header-actions-pagination').html(paginationHTML);
+    }
+    const gotoPreviousPage = ()=>{
+        paginationCurrentPage--;
+        setTasksUI(dataGroups[paginationCurrentPage],300);
+        const pagination            = new Pagination(paginationPageLimit,totalTasks,paginationCurrentPage,paginationMaxPages);
+        const paginationHTML        = pagination.render();
+        $('#header-actions-pagination').html(paginationHTML);
+    }
+    const gotoRootPage = ()=>{
+        paginationCurrentPage=1;
+        setTasksUI(dataGroups[paginationCurrentPage],300);
+        const pagination            = new Pagination(paginationPageLimit,totalTasks,paginationCurrentPage,paginationMaxPages);
+        const paginationHTML        = pagination.render();
+        $('#header-actions-pagination').html(paginationHTML);
+    }
+
+    /** Custom Handlebars Helper */
+    Handlebars.registerHelper('limit', function(block) {
+        var accum = '';
+        for(var i = 0; i < paginationPageLimit; ++i)
+            accum += block.fn(i);
+        return accum;
+    });
+</script>
+
+<!-- HANDLEBARS: TEMPLATING-->
+<script id="template-tasks-listings" type="text/x-handlebars-template">
+    {{#each this}}
+        <div id="task-{{id}}" class="task" data-id="{{id}}">
+            <input type="checkbox" class="checkbox {{#if selected}}selectedTask{{/if}}" name="task[]" onclick="selectTask(this,{{id}})" {{#if selected}}checked{{/if}} value="{{id}}">
+            <h3>{{title}}</h3>
+        </div>
+    {{else}}
+        <div style="padding-top:10px; display: block; margin:0 auto">
+            <div class="message-success">No tasks were found</div>
+        </div>
+    {{/each}}
+</script>
+<script id="template-tasks-listings-preloader" type="text/x-handlebars-template">
+
+    {{#limit}}
+        <div class="task">
+            <div class="placeholderblock" style="width: 80%;"></div>
+            <div class="placeholderblock" style="width: 10%; margin-left: 5px"></div>
+        </div>
+    {{/limit}}
+</script>
+
+</body>
+</html>
